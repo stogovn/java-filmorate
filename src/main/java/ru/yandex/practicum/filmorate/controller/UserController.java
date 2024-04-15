@@ -18,7 +18,7 @@ import java.util.Map;
 @Slf4j
 @RestController
 @RequestMapping("/users")
-public class UserController {
+public class UserController extends Controller<User> {
     private final Map<Long, User> users = new HashMap<>();
 
     @GetMapping
@@ -38,22 +38,14 @@ public class UserController {
             log.debug("Новому пользователю присвоилось имя = {}", user.getLogin());
         }
         // формируем дополнительные данные
-        user.setId(getNextId());
+        user.setId(getNextId(users));
         // сохраняем нового пользователя в памяти приложения
         users.put(user.getId(), user);
         log.info("Создался новый пользователь с id = {}", user.getId());
         return user;
     }
 
-    // вспомогательный метод для генерации идентификатора нового пользователя
-    private long getNextId() {
-        long currentMaxId = users.keySet()
-                .stream()
-                .mapToLong(id -> id)
-                .max()
-                .orElse(0);
-        return ++currentMaxId;
-    }
+
 
     @PutMapping
     public User update(@RequestBody User newUser) {
@@ -70,7 +62,7 @@ public class UserController {
                 }
             }
             User oldUser = users.get(newUser.getId());
-            // если пользователь найден и все условия соблюдены, обновляем её содержимое
+            // если пользователь найден и все условия соблюдены, обновляем его содержимое
             oldUser.setName(newUser.getName());
             oldUser.setBirthday(newUser.getBirthday());
             oldUser.setEmail(newUser.getEmail());

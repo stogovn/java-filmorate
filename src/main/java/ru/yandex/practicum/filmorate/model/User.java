@@ -14,9 +14,9 @@ import java.time.LocalDate;
 public class User {
     private Long id;
     @Email(message = "Неправильно введён email")
+    @NotBlank
     private String email;
     @NotBlank
-    @NotNull
     private String login;
     private String name;
     @Past(message = "Дата рождения не может быть в будущем")

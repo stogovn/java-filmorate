@@ -14,11 +14,10 @@ import java.time.LocalDate;
 @Builder
 public class Film {
     private Long id;
-    @NotNull
     @NotBlank(message = "Название не должно быть пустым")
     private String name;
     @Size(max = 200, message = "Максимальная длина описания — 200 символов")
-    @NotNull
+    @NotBlank
     private String description;
     @NotNull
     private LocalDate releaseDate;
