@@ -37,6 +37,7 @@ public class UserController extends Controller<User> {
             user.setName(user.getLogin());
             log.debug("Новому пользователю присвоилось имя = {}", user.getLogin());
         }
+        validate(user);
         // формируем дополнительные данные
         user.setId(getNextId(users));
         // сохраняем нового пользователя в памяти приложения
@@ -44,8 +45,6 @@ public class UserController extends Controller<User> {
         log.info("Создался новый пользователь с id = {}", user.getId());
         return user;
     }
-
-
 
     @PutMapping
     public User update(@RequestBody User newUser) {
@@ -55,12 +54,7 @@ public class UserController extends Controller<User> {
             throw new ValidationException("Id должен быть указан");
         }
         if (users.containsKey(newUser.getId())) {
-            for (User u : users.values()) {
-                if (u.getEmail().equals(newUser.getEmail())) {
-                    log.error("При попытке обновления пользователя указан существующий email: {}", u.getEmail());
-                    throw new ValidationException("Этот email уже используется");
-                }
-            }
+            validate(newUser);
             User oldUser = users.get(newUser.getId());
             // если пользователь найден и все условия соблюдены, обновляем его содержимое
             oldUser.setName(newUser.getName());
@@ -72,5 +66,15 @@ public class UserController extends Controller<User> {
         }
         log.error("При попытке обновления пользователя указан не существующий id: {}", newUser.getId());
         throw new ValidationException("Пост с id = " + newUser.getId() + " не найден");
+    }
+
+    @Override
+    protected void validate(User user) {
+        for (User u : users.values()) {
+            if (u.getEmail().equals(user.getEmail())) {
+                log.error("При попытке обновления пользователя указан существующий email: {}", u.getEmail());
+                throw new ValidationException("Этот email уже используется");
+            }
+        }
     }
 }

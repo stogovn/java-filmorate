@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ru.yandex.practicum.filmorate.model.Film;
 
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -29,7 +30,7 @@ public class FilmController extends Controller<Film> {
     @PostMapping
     public Film create(@Valid @RequestBody Film film) {
         // проверяем выполнение необходимых условий
-        validateReleaseDate(film);
+        validate(film);
         // формируем дополнительные данные
         film.setId(getNextId(films));
         // сохраняем новый фильм в памяти приложения
@@ -45,7 +46,7 @@ public class FilmController extends Controller<Film> {
             log.error("При попытке обновления фильма не был указан id");
             throw new ValidationException("Id должен быть указан");
         }
-        validateReleaseDate(newFilm);
+        validate(newFilm);
         if (films.containsKey(newFilm.getId())) {
             Film oldFilm = films.get(newFilm.getId());
             // если фильм найден и все условия соблюдены, обновляем его содержимое
@@ -58,5 +59,14 @@ public class FilmController extends Controller<Film> {
         }
         log.error("При попытке обновления фильма указан не существующий id: {}", newFilm.getId());
         throw new ValidationException("Фильм с id = " + newFilm.getId() + " не найден");
+    }
+
+    @Override
+    protected void validate(Film film) {
+        LocalDate minDate = LocalDate.of(1895, 12, 28);
+        if (film.getReleaseDate().isBefore(minDate)) {
+            log.error("При попытке создания фильма указана дата раньше {}", minDate);
+            throw new ValidationException("Дата должна быть не раньше 28 декабря 1895 года");
+        }
     }
 }
