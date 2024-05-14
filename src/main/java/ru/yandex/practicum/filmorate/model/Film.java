@@ -9,6 +9,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.util.Set;
 
 @Data
 @Builder
@@ -24,4 +25,5 @@ public class Film {
     @NotNull
     @Positive(message = "Продолжительность фильма не может быть отрицательным числом")
     private Long duration;
+    private Set<Long> likes;
 }

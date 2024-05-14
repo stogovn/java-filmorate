@@ -2,71 +2,68 @@ package ru.yandex.practicum.filmorate.controller;
 
 import jakarta.validation.Valid;
 import jakarta.validation.ValidationException;
-import lombok.extern.slf4j.Slf4j;
+import lombok.AllArgsConstructor;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.service.FilmService;
+import ru.yandex.practicum.filmorate.service.UserService;
 
-import java.time.LocalDate;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
-@Slf4j
+
 @RestController
-@RequestMapping("/films")
-public class FilmController extends Controller<Film> {
-    private final Map<Long, Film> films = new HashMap<>();
+@AllArgsConstructor
+public class FilmController {
+    FilmService filmService;
+    UserService userService;
 
-    @GetMapping
+    @GetMapping("/films")
     public Collection<Film> findAll() {
-        return films.values();
+        return filmService.findAll();
     }
 
-    @PostMapping
+    @PostMapping("/films")
     public Film create(@Valid @RequestBody Film film) {
-        // проверяем выполнение необходимых условий
-        validate(film);
-        // формируем дополнительные данные
-        film.setId(getNextId(films));
-        // сохраняем новый фильм в памяти приложения
-        films.put(film.getId(), film);
-        log.info("Создался новый фильм с id = {}", film.getId());
-        return film;
+        return filmService.create(film);
     }
 
-    @PutMapping
+    @PutMapping("/films")
     public Film update(@Valid @RequestBody Film newFilm) {
-        // проверяем необходимые условия
-        if (newFilm.getId() == null) {
-            log.error("При попытке обновления фильма не был указан id");
-            throw new ValidationException("Id должен быть указан");
-        }
-        validate(newFilm);
-        if (films.containsKey(newFilm.getId())) {
-            Film oldFilm = films.get(newFilm.getId());
-            // если фильм найден и все условия соблюдены, обновляем его содержимое
-            oldFilm.setDescription(newFilm.getDescription());
-            oldFilm.setDuration(newFilm.getDuration());
-            oldFilm.setName(newFilm.getName());
-            oldFilm.setReleaseDate(newFilm.getReleaseDate());
-            log.info("Обновили фильм с id = {}", newFilm.getId());
-            return oldFilm;
-        }
-        log.error("При попытке обновления фильма указан не существующий id: {}", newFilm.getId());
-        throw new ValidationException("Фильм с id = " + newFilm.getId() + " не найден");
+        return filmService.update(newFilm);
     }
 
-    @Override
-    protected void validate(Film film) {
-        LocalDate minDate = LocalDate.of(1895, 12, 28);
-        if (film.getReleaseDate().isBefore(minDate)) {
-            log.error("При попытке создания фильма указана дата раньше {}", minDate);
-            throw new ValidationException("Дата должна быть не раньше 28 декабря 1895 года");
+    @PutMapping("/films/{id}/like/{userId}")
+    public void addLike(@PathVariable("id") Long id,
+                        @PathVariable("userId") Long userId) {
+        if (userService.findUserById(userId).isEmpty()) {
+            throw new NotFoundException("Пользователь с id = " + id + " не найден");
         }
+        filmService.addLike(id, userId);
+    }
+
+    @DeleteMapping("/films/{id}/like/{userId}")
+    public void deleteLike(@PathVariable("id") Long id,
+                           @PathVariable("userId") Long userId) {
+        if (userService.findUserById(userId).isEmpty()) {
+            throw new NotFoundException("Пользователь с id = " + id + " не найден");
+        }
+        filmService.deleteLike(id, userId);
+    }
+
+    @GetMapping("/films/popular")
+    public List<Film> getCommonFriends(@RequestParam(defaultValue = "10") Long count) {
+        if (count < 0) {
+            throw new ValidationException("Некорректный размер выборки. Размер должен быть больше нуля");
+        }
+        return filmService.getPopularFilms(count);
     }
 }
