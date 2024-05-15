@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.storage.user;
 
+import lombok.Getter;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import lombok.extern.slf4j.Slf4j;
@@ -10,13 +11,12 @@ import ru.yandex.practicum.filmorate.storage.Storage;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 
 @Slf4j
+@Getter
 @Component
 public class InMemoryUserStorage extends Storage<User> implements UserStorage {
     private final Map<Long, User> users = new HashMap<>();
@@ -70,51 +70,10 @@ public class InMemoryUserStorage extends Storage<User> implements UserStorage {
     }
 
     @Override
-    public void addFriend(Long id, Long friendId) {
-        validateId(id);
-        validateId(friendId);
-        users.get(id).getFriends().add(friendId);
-        log.info("Пользователю с id = {} добавился друг с id = {}", id, friendId);
-        users.get(friendId).getFriends().add(id);
-        log.info("Пользователю с id = {} добавился друг с id = {}", friendId, id);
-    }
-
-    @Override
-    public Optional<User> findUserById(Long id) {
+    public Optional<User> findUserById(long id) {
         return users.values().stream()
                 .filter(x -> x.getId().equals(id))
                 .findFirst();
-    }
-
-    @Override
-    public void deleteFriend(Long id, Long friendId) {
-        validateId(id);
-        validateId(friendId);
-        users.get(id).getFriends().removeIf(x -> x.equals(friendId));
-        log.info("У пользователя с id = {} удалили друга с id = {}", id, friendId);
-        users.get(friendId).getFriends().removeIf(x -> x.equals(id));
-        log.info("У пользователя с id = {} удалили друга с id = {}", friendId, id);
-    }
-
-    @Override
-    public List<Optional<User>> getFriends(Long id) {
-        validateId(id);
-        return users.get(id).getFriends().stream()
-                .map(this::findUserById)
-                .toList();
-    }
-
-    @Override
-    public List<Optional<User>> getCommonFriends(Long id, Long otherId) {
-        validateId(id);
-        validateId(otherId);
-        Set<Long> setId = users.get(id).getFriends();
-        Set<Long> setOtherId = users.get(otherId).getFriends();
-        setId.retainAll(setOtherId);
-        log.info("У пользователей с id = {} и id = {} общие друзья: {}", id, otherId, setId);
-        return setId.stream()
-                .map(this::findUserById)
-                .toList();
     }
 
     @Override
@@ -124,13 +83,6 @@ public class InMemoryUserStorage extends Storage<User> implements UserStorage {
                 log.error("При попытке обновления пользователя указан существующий email: {}", u.getEmail());
                 throw new ValidationException("Этот email уже используется");
             }
-        }
-    }
-
-    public void validateId(Long id) {
-        if (!users.containsKey(id)) {
-            log.error("Указан не существующий пользователь с id: {}", id);
-            throw new NotFoundException("Пользователь с id = " + id + " не найден");
         }
     }
 }

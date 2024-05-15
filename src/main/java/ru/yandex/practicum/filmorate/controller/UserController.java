@@ -20,7 +20,7 @@ import java.util.Optional;
 @RestController
 @AllArgsConstructor
 public class UserController {
-    UserService userService;
+    private UserService userService;
 
     @GetMapping("/users")
     public Collection<User> findAll() {

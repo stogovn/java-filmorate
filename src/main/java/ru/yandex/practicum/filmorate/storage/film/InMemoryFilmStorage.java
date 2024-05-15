@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.storage.film;
 
+import lombok.Getter;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -9,13 +10,13 @@ import ru.yandex.practicum.filmorate.storage.Storage;
 
 import java.time.LocalDate;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Slf4j
+@Getter
 @Component
 public class InMemoryFilmStorage extends Storage<Film> implements FilmStorage {
     private final Map<Long, Film> films = new HashMap<>();
@@ -61,26 +62,10 @@ public class InMemoryFilmStorage extends Storage<Film> implements FilmStorage {
     }
 
     @Override
-    public void addLike(Long id, Long userId) {
-        validateId(id);
-        films.get(id).getLikes().add(userId);
-        log.info("Фильму с id = {} поставил лайк пользователь с id = {}", id, userId);
-    }
-
-    @Override
-    public void deleteLike(Long id, Long userId) {
-        validateId(id);
-        films.get(id).getLikes().removeIf(x -> x.equals(userId));
-        log.info("У фильма с id = {} пользователь с id = {} удалил лайк", id, userId);
-    }
-
-    @Override
-    public List<Film> getPopularFilms(Long count) {
-        List<Film> sortedFilms = films.values().stream()
-                .filter(o -> o.getLikes() != null)
-                .sorted(Comparator.comparingInt(o -> o.getLikes().size())).toList().reversed();
-
-        return sortedFilms.stream().limit(count).toList();
+    public Optional<Film> findFilmById(long id) {
+        return films.values().stream()
+                .filter(x -> x.getId().equals(id))
+                .findFirst();
     }
 
     @Override
@@ -89,13 +74,6 @@ public class InMemoryFilmStorage extends Storage<Film> implements FilmStorage {
         if (film.getReleaseDate().isBefore(minDate)) {
             log.error("При попытке создания фильма указана дата раньше {}", minDate);
             throw new ValidationException("Дата должна быть не раньше 28 декабря 1895 года");
-        }
-    }
-
-    private void validateId(Long id) {
-        if (!films.containsKey(id)) {
-            log.error("Указан не существующий фильм с id: {}", id);
-            throw new NotFoundException("Фильм с id = " + id + " не найден");
         }
     }
 }
