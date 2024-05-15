@@ -5,26 +5,26 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.storage.film.InMemoryFilmStorage;
-import ru.yandex.practicum.filmorate.storage.user.InMemoryUserStorage;
+import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
+import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 
 @Slf4j
 @Service
 @AllArgsConstructor
 public class FilmService {
-    private InMemoryFilmStorage filmStorage;
-    private InMemoryUserStorage userStorage;
+    private FilmStorage filmStorage;
+    private UserStorage userStorage;
 
     public Film create(Film film) {
         return filmStorage.create(film);
     }
 
     public Film update(Film newFilm) {
+        validateId(newFilm.getId());
         return filmStorage.update(newFilm);
     }
 
@@ -54,22 +54,21 @@ public class FilmService {
         return sortedFilms.stream().limit(count).toList();
     }
 
-    public Optional<Film> findFilmById(long id) {
+    public Film findFilmById(long id) {
+        validateId(id);
         return filmStorage.findFilmById(id);
     }
 
     private void validateId(Long id) {
         if (!filmStorage.getFilms().containsKey(id)) {
-            log.error("Указан не существующий фильм с id: {}", id);
+            log.error("Указан несуществующий фильм с id: {}", id);
             throw new NotFoundException("Фильм с id = " + id + " не найден");
-        }
-        if (userStorage.findUserById(id).isEmpty()) {
-            throw new NotFoundException("Пользователь с id = " + id + " не найден");
         }
     }
 
     private void validateUserId(Long userId) {
-        if (userStorage.findUserById(userId).isEmpty()) {
+        if (!userStorage.getUsers().containsKey(userId)) {
+            log.error("Указан несуществующий пользователь с id: {}", userId);
             throw new NotFoundException("Пользователь с id = " + userId + " не найден");
         }
     }

@@ -1,7 +1,6 @@
 package ru.yandex.practicum.filmorate.storage.user;
 
 import lombok.Getter;
-import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -12,8 +11,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Optional;
-
 
 @Slf4j
 @Getter
@@ -49,19 +46,17 @@ public class InMemoryUserStorage extends Storage<User> implements UserStorage {
             log.error("При попытке обновления пользователя не был указан id");
             throw new ValidationException("Id должен быть указан");
         }
-        if (users.containsKey(newUser.getId())) {
+        User oldUser = users.get(newUser.getId());
+        if (!oldUser.getEmail().equals(newUser.getEmail())) {
             validate(newUser);
-            User oldUser = users.get(newUser.getId());
-            // если пользователь найден и все условия соблюдены, обновляем его содержимое
-            oldUser.setName(newUser.getName());
-            oldUser.setBirthday(newUser.getBirthday());
-            oldUser.setEmail(newUser.getEmail());
-            oldUser.setLogin(newUser.getLogin());
-            log.info("Обновили пользователя с id = {}", newUser.getId());
-            return oldUser;
         }
-        log.error("При попытке обновления пользователя указан не существующий id: {}", newUser.getId());
-        throw new NotFoundException("Пользователь с id = " + newUser.getId() + " не найден");
+        // если пользователь найден и все условия соблюдены, обновляем его содержимое
+        oldUser.setName(newUser.getName());
+        oldUser.setBirthday(newUser.getBirthday());
+        oldUser.setEmail(newUser.getEmail());
+        oldUser.setLogin(newUser.getLogin());
+        log.info("Обновили пользователя с id = {}", newUser.getId());
+        return oldUser;
     }
 
     @Override
@@ -70,10 +65,8 @@ public class InMemoryUserStorage extends Storage<User> implements UserStorage {
     }
 
     @Override
-    public Optional<User> findUserById(long id) {
-        return users.values().stream()
-                .filter(x -> x.getId().equals(id))
-                .findFirst();
+    public User findUserById(long id) {
+        return users.get(id);
     }
 
     @Override

@@ -5,24 +5,24 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
-import ru.yandex.practicum.filmorate.storage.user.InMemoryUserStorage;
+import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 @Slf4j
 @Service
 @AllArgsConstructor
 public class UserService {
-    private InMemoryUserStorage userStorage;
+    private UserStorage userStorage;
 
     public User create(User user) {
         return userStorage.create(user);
     }
 
     public User update(User newUser) {
+        validateId(newUser.getId());
         return userStorage.update(newUser);
     }
 
@@ -39,7 +39,8 @@ public class UserService {
         log.info("Пользователю с id = {} добавился друг с id = {}", friendId, id);
     }
 
-    public Optional<User> findUserById(long id) {
+    public User findUserById(long id) {
+        validateId(id);
         return userStorage.findUserById(id);
     }
 
@@ -52,14 +53,14 @@ public class UserService {
         log.info("У пользователя с id = {} удалили друга с id = {}", friendId, id);
     }
 
-    public List<Optional<User>> getFriends(Long id) {
+    public List<User> getFriends(Long id) {
         validateId(id);
         return userStorage.getUsers().get(id).getFriends().stream()
                 .map(this::findUserById)
                 .toList();
     }
 
-    public List<Optional<User>> getCommonFriends(Long id, Long otherId) {
+    public List<User> getCommonFriends(Long id, Long otherId) {
         validateId(id);
         validateId(otherId);
         Set<Long> setId = userStorage.getUsers().get(id).getFriends();
@@ -73,7 +74,7 @@ public class UserService {
 
     private void validateId(Long id) {
         if (!userStorage.getUsers().containsKey(id)) {
-            log.error("Указан не существующий пользователь с id: {}", id);
+            log.error("Указан несуществующий пользователь с id: {}", id);
             throw new NotFoundException("Пользователь с id = " + id + " не найден");
         }
     }

@@ -17,7 +17,6 @@ import ru.yandex.practicum.filmorate.service.FilmService;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 
 
 @RestController
@@ -31,7 +30,7 @@ public class FilmController {
     }
 
     @GetMapping("/films/{id}")
-    public Optional<Film> findFilmById(@PathVariable("id") Long id) {
+    public Film findFilmById(@PathVariable("id") Long id) {
         return filmService.findFilmById(id);
     }
 

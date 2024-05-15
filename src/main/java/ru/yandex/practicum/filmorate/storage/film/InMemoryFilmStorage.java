@@ -4,7 +4,6 @@ import lombok.Getter;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.Storage;
 
@@ -13,7 +12,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Optional;
 
 @Slf4j
 @Getter
@@ -42,18 +40,14 @@ public class InMemoryFilmStorage extends Storage<Film> implements FilmStorage {
             throw new ValidationException("Id должен быть указан");
         }
         validate(newFilm);
-        if (films.containsKey(newFilm.getId())) {
-            Film oldFilm = films.get(newFilm.getId());
-            // если фильм найден и все условия соблюдены, обновляем его содержимое
-            oldFilm.setDescription(newFilm.getDescription());
-            oldFilm.setDuration(newFilm.getDuration());
-            oldFilm.setName(newFilm.getName());
-            oldFilm.setReleaseDate(newFilm.getReleaseDate());
-            log.info("Обновили фильм с id = {}", newFilm.getId());
-            return oldFilm;
-        }
-        log.error("При попытке обновления фильма указан не существующий id: {}", newFilm.getId());
-        throw new NotFoundException("Фильм с id = " + newFilm.getId() + " не найден");
+        Film oldFilm = films.get(newFilm.getId());
+        // если фильм найден и все условия соблюдены, обновляем его содержимое
+        oldFilm.setDescription(newFilm.getDescription());
+        oldFilm.setDuration(newFilm.getDuration());
+        oldFilm.setName(newFilm.getName());
+        oldFilm.setReleaseDate(newFilm.getReleaseDate());
+        log.info("Обновили фильм с id = {}", newFilm.getId());
+        return oldFilm;
     }
 
     @Override
@@ -62,10 +56,8 @@ public class InMemoryFilmStorage extends Storage<Film> implements FilmStorage {
     }
 
     @Override
-    public Optional<Film> findFilmById(long id) {
-        return films.values().stream()
-                .filter(x -> x.getId().equals(id))
-                .findFirst();
+    public Film findFilmById(long id) {
+        return films.get(id);
     }
 
     @Override

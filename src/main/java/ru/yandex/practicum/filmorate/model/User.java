@@ -6,7 +6,6 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Past;
 import lombok.Builder;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 
 import java.time.LocalDate;
 import java.util.Set;
@@ -24,6 +23,5 @@ public class User {
     @Past(message = "Дата рождения не может быть в будущем")
     @NotNull
     private LocalDate birthday;
-    @EqualsAndHashCode.Exclude
     private Set<Long> friends;
 }
