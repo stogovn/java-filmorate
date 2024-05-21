@@ -8,6 +8,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.util.Set;
 
 @Data
 @Builder
@@ -22,4 +23,5 @@ public class User {
     @Past(message = "Дата рождения не может быть в будущем")
     @NotNull
     private LocalDate birthday;
+    private Set<Long> friends;
 }

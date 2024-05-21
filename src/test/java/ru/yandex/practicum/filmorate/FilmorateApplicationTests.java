@@ -2,15 +2,15 @@ package ru.yandex.practicum.filmorate;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
-import jakarta.validation.ValidationException;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
 import jakarta.validation.Validator;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import org.junit.jupiter.api.Test;
-import ru.yandex.practicum.filmorate.controller.FilmController;
-import ru.yandex.practicum.filmorate.controller.UserController;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.storage.film.InMemoryFilmStorage;
+import ru.yandex.practicum.filmorate.storage.user.InMemoryUserStorage;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -21,8 +21,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 
 class FilmorateApplicationTests {
-    static FilmController filmController = new FilmController();
-    static UserController userController = new UserController();
+    static InMemoryFilmStorage filmStorage = new InMemoryFilmStorage();
+    static InMemoryUserStorage userStorage = new InMemoryUserStorage();
     private final Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
 
     @AllArgsConstructor
@@ -56,7 +56,7 @@ class FilmorateApplicationTests {
                 violationsDescription.getFirst().getMessage());
         LocalDate failRelease = LocalDate.of(1800, 3, 25);
         filmFail.setReleaseDate(failRelease);
-        assertThrows(ValidationException.class, () -> filmController.create(filmFail));
+        assertThrows(ValidationException.class, () -> filmStorage.create(filmFail));
         filmFail.setName("");
         filmFail.setDescription("description");
         List<ConstraintViolation<Film>> violationsName = new ArrayList<>(validator.validate(filmFail));
@@ -104,11 +104,11 @@ class FilmorateApplicationTests {
                 violationsEmail.getFirst().getPropertyPath().toString());
         assertEquals(expectedEmail.message,
                 violationsEmail.getFirst().getMessage());
-        userController.create(userFail);
+        userStorage.create(userFail);
         assertEquals("login", userFail.getName(), "Имя не стало логином");
         userFail.setName("name");
         userFail.setLogin(loginFail);
-        assertThrows(ValidationException.class, () -> userController.create(userFail));
+        assertThrows(ValidationException.class, () -> userStorage.create(userFail));
         userFail.setLogin("login");
         userFail.setEmail("mail@mail.ru");
         userFail.setBirthday(birthdayFail);

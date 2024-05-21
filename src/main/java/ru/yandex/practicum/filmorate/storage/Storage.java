@@ -1,12 +1,8 @@
-package ru.yandex.practicum.filmorate.controller;
-
-import lombok.extern.slf4j.Slf4j;
+package ru.yandex.practicum.filmorate.storage;
 
 import java.util.Map;
 
-@Slf4j
-public abstract class Controller<T> {
-    // вспомогательный метод для генерации идентификатора для контроллеров
+public abstract class Storage<T> {
     protected long getNextId(Map<Long, T> map) {
         long currentMaxId = map.keySet()
                 .stream()
