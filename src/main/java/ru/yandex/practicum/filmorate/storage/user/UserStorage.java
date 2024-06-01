@@ -1,9 +1,9 @@
 package ru.yandex.practicum.filmorate.storage.user;
 
+import org.springframework.jdbc.core.JdbcTemplate;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.util.Collection;
-import java.util.Map;
 
 public interface UserStorage {
     User create(User data);
@@ -14,5 +14,7 @@ public interface UserStorage {
 
     User findUserById(long id);
 
-    Map<Long, User> getUsers();
+    void validate(User user);
+
+    JdbcTemplate getJdbcTemplate();
 }

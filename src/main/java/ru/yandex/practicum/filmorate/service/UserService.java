@@ -5,77 +5,118 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.storage.user.DbUserStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
+import java.sql.PreparedStatement;
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 
 @Slf4j
 @Service
 @AllArgsConstructor
 public class UserService {
-    private UserStorage userStorage;
+    private UserStorage dbUserStorage;
 
     public User create(User user) {
-        return userStorage.create(user);
+        return dbUserStorage.create(user);
     }
 
     public User update(User newUser) {
         validateId(newUser.getId());
-        return userStorage.update(newUser);
+        return dbUserStorage.update(newUser);
     }
 
     public Collection<User> findAll() {
-        return userStorage.findAll();
+        return dbUserStorage.findAll();
     }
 
     public void addFriend(long id, long friendId) {
         validateId(id);
         validateId(friendId);
-        userStorage.getUsers().get(id).getFriends().add(friendId);
-        log.info("Пользователю с id = {} добавился друг с id = {}", id, friendId);
-        userStorage.getUsers().get(friendId).getFriends().add(id);
-        log.info("Пользователю с id = {} добавился друг с id = {}", friendId, id);
+
+        final String querySelect = """
+                SELECT status FROM friendship
+                WHERE (accepting_user_id = ? AND requesting_user_id = ?)
+                """;
+
+        final String queryInsert = """
+                INSERT INTO friendship (accepting_user_id, requesting_user_id, status)
+                VALUES (?,?,?)
+                """;
+
+        final String queryUpdate = """
+                UPDATE friendship
+                SET status = 'confirmed'
+                WHERE accepting_user_id = ? AND requesting_user_id = ?
+                """;
+
+        // Проверка существования записи и её статуса
+        List<String> existingStatus = dbUserStorage
+                .getJdbcTemplate()
+                .queryForList(querySelect, String.class, id, friendId);
+
+        if (existingStatus.isEmpty()) {
+            // Если записи нет, вставляем новую с состоянием unconfirmed
+            dbUserStorage.getJdbcTemplate().update(connection -> {
+                PreparedStatement stmt = connection.prepareStatement(queryInsert);
+                stmt.setLong(1, id);
+                stmt.setLong(2, friendId);
+                stmt.setString(3, "unconfirmed");
+                return stmt;
+            });
+        } else if (existingStatus.getFirst().equals("unconfirmed")) {
+            // Если запись существует с состоянием unconfirmed, обновляем на confirmed
+            dbUserStorage.getJdbcTemplate().update(connection -> {
+                PreparedStatement stmt = connection.prepareStatement(queryUpdate);
+                stmt.setLong(1, id);
+                stmt.setLong(2, friendId);
+                return stmt;
+            });
+        }
     }
 
     public User findUserById(long id) {
         validateId(id);
-        return userStorage.findUserById(id);
+        return dbUserStorage.findUserById(id);
     }
 
     public void deleteFriend(long id, long friendId) {
         validateId(id);
         validateId(friendId);
-        userStorage.getUsers().get(id).getFriends().removeIf(x -> x.equals(friendId));
-        log.info("У пользователя с id = {} удалили друга с id = {}", id, friendId);
-        userStorage.getUsers().get(friendId).getFriends().removeIf(x -> x.equals(id));
-        log.info("У пользователя с id = {} удалили друга с id = {}", friendId, id);
+        final String sqlQuery = """
+                DELETE FROM friendship AS u
+                WHERE accepting_user_id = ? AND requesting_user_id = ?
+                """;
+        dbUserStorage.getJdbcTemplate().update(sqlQuery, id, friendId);
     }
 
     public List<User> getFriends(Long id) {
         validateId(id);
-        return userStorage.getUsers().get(id).getFriends().stream()
-                .map(this::findUserById)
-                .toList();
+        final String sqlQuery = """
+                SELECT * FROM users AS u
+                JOIN friendship AS f ON u.user_id = f.requesting_user_id
+                WHERE f.accepting_user_id = ?
+                """;
+        return dbUserStorage.getJdbcTemplate().query(sqlQuery, DbUserStorage::makeUser, id);
     }
 
     public List<User> getCommonFriends(Long id, Long otherId) {
         validateId(id);
         validateId(otherId);
-        Set<Long> setId = userStorage.getUsers().get(id).getFriends();
-        Set<Long> setOtherId = userStorage.getUsers().get(otherId).getFriends();
-        setId.retainAll(setOtherId);
-        log.info("У пользователей с id = {} и id = {} общие друзья: {}", id, otherId, setId);
-        return setId.stream()
-                .map(this::findUserById)
-                .toList();
+        final String query = """
+                SELECT u.* FROM users AS u
+                JOIN friendship f1 ON u.user_id = f1.requesting_user_id AND f1.accepting_user_id = ?
+                JOIN friendship f2 ON u.user_id = f2.requesting_user_id AND f2.accepting_user_id = ?
+                """;
+        return dbUserStorage.getJdbcTemplate().query(query, DbUserStorage::makeUser, id, otherId);
     }
 
     private void validateId(Long id) {
-        if (!userStorage.getUsers().containsKey(id)) {
-            log.error("Указан несуществующий пользователь с id: {}", id);
-            throw new NotFoundException("Пользователь с id = " + id + " не найден");
+        final String sqlQuery = "SELECT * FROM users WHERE user_id = ?";
+        final List<User> users = dbUserStorage.getJdbcTemplate().query(sqlQuery, DbUserStorage::makeUser, id);
+        if (users.size() != 1) {
+            throw new NotFoundException("user id = " + id);
         }
     }
 }

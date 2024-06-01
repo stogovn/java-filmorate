@@ -1,11 +1,11 @@
 package ru.yandex.practicum.filmorate.storage.user;
 
-import lombok.Getter;
+import org.springframework.jdbc.core.JdbcTemplate;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.model.User;
-import ru.yandex.practicum.filmorate.storage.Storage;
+import utils.StorageUtils;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -13,9 +13,9 @@ import java.util.HashSet;
 import java.util.Map;
 
 @Slf4j
-@Getter
+
 @Component
-public class InMemoryUserStorage extends Storage<User> implements UserStorage {
+public class InMemoryUserStorage extends StorageUtils<User> implements UserStorage {
     private final Map<Long, User> users = new HashMap<>();
 
     @Override
@@ -70,12 +70,17 @@ public class InMemoryUserStorage extends Storage<User> implements UserStorage {
     }
 
     @Override
-    protected void validate(User user) {
+    public void validate(User user) {
         for (User u : users.values()) {
             if (u.getEmail().equals(user.getEmail())) {
                 log.error("При попытке обновления пользователя указан существующий email: {}", u.getEmail());
                 throw new ValidationException("Этот email уже используется");
             }
         }
+    }
+
+    @Override
+    public JdbcTemplate getJdbcTemplate() {
+        return null;
     }
 }

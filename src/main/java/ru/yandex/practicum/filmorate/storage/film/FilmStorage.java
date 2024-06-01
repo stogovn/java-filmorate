@@ -1,9 +1,9 @@
 package ru.yandex.practicum.filmorate.storage.film;
 
+import org.springframework.jdbc.core.JdbcTemplate;
 import ru.yandex.practicum.filmorate.model.Film;
 
 import java.util.Collection;
-import java.util.Map;
 
 
 public interface FilmStorage {
@@ -15,5 +15,7 @@ public interface FilmStorage {
 
     Film findFilmById(long id);
 
-    Map<Long, Film> getFilms();
+    void validate(Film film);
+
+    JdbcTemplate getJdbcTemplate();
 }

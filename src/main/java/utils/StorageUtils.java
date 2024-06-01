@@ -1,8 +1,8 @@
-package ru.yandex.practicum.filmorate.storage;
+package utils;
 
 import java.util.Map;
 
-public abstract class Storage<T> {
+public abstract class StorageUtils<T> {
     protected long getNextId(Map<Long, T> map) {
         long currentMaxId = map.keySet()
                 .stream()

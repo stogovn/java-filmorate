@@ -26,4 +26,6 @@ public class Film {
     @Positive(message = "Продолжительность фильма не может быть отрицательным числом")
     private Long duration;
     private Set<Long> likes;
+    private Mpa mpa;
+    private Set<Genre> genres;
 }

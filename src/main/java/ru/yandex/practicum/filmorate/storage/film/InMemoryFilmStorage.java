@@ -1,11 +1,12 @@
 package ru.yandex.practicum.filmorate.storage.film;
 
 import lombok.Getter;
+import org.springframework.jdbc.core.JdbcTemplate;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.storage.Storage;
+import utils.StorageUtils;
 
 import java.time.LocalDate;
 import java.util.Collection;
@@ -16,7 +17,7 @@ import java.util.Map;
 @Slf4j
 @Getter
 @Component
-public class InMemoryFilmStorage extends Storage<Film> implements FilmStorage {
+public class InMemoryFilmStorage extends StorageUtils<Film> implements FilmStorage {
     private final Map<Long, Film> films = new HashMap<>();
 
     @Override
@@ -61,11 +62,16 @@ public class InMemoryFilmStorage extends Storage<Film> implements FilmStorage {
     }
 
     @Override
-    protected void validate(Film film) {
+    public void validate(Film film) {
         LocalDate minDate = LocalDate.of(1895, 12, 28);
         if (film.getReleaseDate().isBefore(minDate)) {
             log.error("При попытке создания фильма указана дата раньше {}", minDate);
             throw new ValidationException("Дата должна быть не раньше 28 декабря 1895 года");
         }
+    }
+
+    @Override
+    public JdbcTemplate getJdbcTemplate() {
+        return null;
     }
 }
