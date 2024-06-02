@@ -6,7 +6,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.jdbc.Sql;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
@@ -25,7 +24,7 @@ class DbUserStorageTest {
 
 
     @Test
-    void create() {
+    void shouldBeCorrectDbUserStorage() {
         userStorage.create(User.builder()
                 .email("email@email.ru")
                 .login("test")
@@ -35,37 +34,30 @@ class DbUserStorageTest {
         List<User> users = userStorage.findAll();
         assertEquals(1, users.size());
         assertThat(users.getFirst()).hasFieldOrPropertyWithValue("id", 1L);
-    }
 
-    @Test
-    @Sql(scripts = {"/test-user.sql"})
-    void get() {
         User user = userStorage.findUserById(1L);
         assertThat(user).hasFieldOrPropertyWithValue("id", 1L);
-    }
 
-    @Test
-    @Sql(scripts = {"/test-user.sql"})
-    void getAll() {
-        List<User> users = userStorage.findAll();
-        assertEquals(2, users.size());
-        assertThat(users.get(0)).hasFieldOrPropertyWithValue("id", 1L);
-        assertThat(users.get(1)).hasFieldOrPropertyWithValue("id", 2L);
-    }
+        userStorage.create(User.builder()
+                .email("emai2l@email.ru")
+                .login("test2")
+                .name("Nik2")
+                .birthday(LocalDate.now())
+                .build());
+        List<User> users1 = userStorage.findAll();
+        assertEquals(2, users1.size());
+        assertThat(users1.get(0)).hasFieldOrPropertyWithValue("id", 1L);
+        assertThat(users1.get(1)).hasFieldOrPropertyWithValue("id", 2L);
 
-    @Test
-    @Sql(scripts = {"/test-user.sql"})
-    void update() {
         userStorage.update(User.builder()
                 .id(1L)
                 .email("email@email.ru")
                 .login("test")
-                .name("Nik")
+                .name("Nikita")
                 .birthday(LocalDate.now())
                 .build());
-        User user = userStorage.findUserById(1L);
-
-        assertThat(user).hasFieldOrPropertyWithValue("id", 1L);
-        assertThat(user).hasFieldOrPropertyWithValue("name", "Nik");
+        User user1 = userStorage.findUserById(1L);
+        assertThat(user1).hasFieldOrPropertyWithValue("id", 1L);
+        assertThat(user1).hasFieldOrPropertyWithValue("name", "Nikita");
     }
 }

@@ -6,7 +6,8 @@ CREATE TABLE IF NOT EXISTS users (
   user_login VARCHAR(40),
   user_email VARCHAR(256),
   user_birthday TIMESTAMP,
-  CONSTRAINT user_id_pk PRIMARY KEY (user_id)
+  CONSTRAINT user_id_pk PRIMARY KEY (user_id),
+  CONSTRAINT unique_email UNIQUE (user_email)
 );
 
 CREATE TABLE IF NOT EXISTS mpa (

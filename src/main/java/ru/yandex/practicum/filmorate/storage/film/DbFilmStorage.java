@@ -3,7 +3,6 @@ package ru.yandex.practicum.filmorate.storage.film;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -13,28 +12,25 @@ import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
-import ru.yandex.practicum.filmorate.model.Mpa;
+import ru.yandex.practicum.filmorate.storage.user.DbUserStorage;
+import mapper.FilmExtractor;
 
 import java.sql.Date;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
+import java.util.Optional;
 
-import static utils.DataUtils.toLocalDate;
 
 @Slf4j
 @RequiredArgsConstructor
 @Component
-@Primary
 @Getter
 public class DbFilmStorage implements FilmStorage {
     private final JdbcTemplate jdbcTemplate;
+    private final DbUserStorage userStorage;
 
     @Override
     public Film create(Film film) {
@@ -111,70 +107,92 @@ public class DbFilmStorage implements FilmStorage {
     }
 
     @Override
-    public Collection<Film> findAll() {
+    public List<Film> findAll() {
         final String sqlQuery = """
-                SELECT f.*, m.mpa_id, m.mpa_name
-                FROM films f
-                JOIN mpa m ON f.mpa_id = m.mpa_id
+                    SELECT f.*,
+                           m.mpa_id, m.mpa_name,
+                           g.genre_id, g.genre_name,
+                           l.user_id AS like_user_id
+                    FROM films f
+                    JOIN mpa m ON f.mpa_id = m.mpa_id
+                    LEFT JOIN film_genres fg ON f.film_id = fg.film_id
+                    LEFT JOIN genres g ON fg.genre_id = g.genre_id
+                    LEFT JOIN likes l ON f.film_id = l.film_id
                 """;
-        return jdbcTemplate.query(sqlQuery, DbFilmStorage::makeFilm);
+        return jdbcTemplate.query(sqlQuery, new FilmExtractor());
     }
 
     @Override
     public Film findFilmById(long id) {
-        final String sqlQuery = """
-                SELECT f.*, m.mpa_id, m.mpa_name
-                FROM films f
-                JOIN mpa m ON f.mpa_id = m.mpa_id
-                WHERE f.film_id = ?
-                """;
-        final List<Film> films = jdbcTemplate.query(sqlQuery, DbFilmStorage::makeFilm, id);
-        if (films.size() != 1) {
+        List<Film> films = findAll();
+        Optional<Film> optionalFilm = films.stream()
+                .filter(f -> f.getId() == id)
+                .findFirst();
+
+        if (optionalFilm.isPresent()) {
+            return optionalFilm.get();
+        } else {
             throw new NotFoundException("Film id = " + id + " not found");
         }
-
-        Film film = films.getFirst();
-
-        final String genreQuery = """
-                SELECT g.genre_id, g.genre_name
-                FROM film_genres fg
-                JOIN genres g ON fg.genre_id = g.genre_id
-                WHERE fg.film_id = ?
-                """;
-        Set<Genre> genres = new HashSet<>(jdbcTemplate.query(genreQuery, DbFilmStorage::makeGenre, id));
-        film.setGenres(genres);
-        return film;
     }
 
     @Override
-    public void validate(Film film) {
+    public void addLike(Long id, Long userId) {
+        findFilmById(id);
+        userStorage.findUserById(userId);
+        final String sqlQuery = """
+                INSERT INTO likes (film_id, user_id)
+                VALUES(?,?)
+                """;
+        jdbcTemplate.update(connection -> {
+            PreparedStatement stmt = connection.prepareStatement(sqlQuery);
+            stmt.setLong(1, id);
+            stmt.setLong(2, userId);
+            return stmt;
+        });
+        log.info("Фильму с id = {} поставил лайк пользователь с id = {}", id, userId);
+    }
+
+    @Override
+    public void deleteLike(Long id, Long userId) {
+        final String sqlQuery = """
+                DELETE FROM likes
+                WHERE film_id = ? AND user_id = ?
+                """;
+        jdbcTemplate.update(sqlQuery, id, userId);
+        log.info("У фильма с id = {} пользователь с id = {} удалил лайк", id, userId);
+    }
+
+    @Override
+    public List<Film> getPopularFilms(Long count) {
+        final String sqlQuery = """
+                SELECT f.*,
+                       m.mpa_id, m.mpa_name,
+                       g.genre_id, g.genre_name,
+                       l.user_id AS like_user_id
+                FROM (
+                    SELECT f.film_id, COUNT(l.user_id) as like_count
+                    FROM films f
+                    LEFT JOIN likes l ON f.film_id = l.film_id
+                    GROUP BY f.film_id
+                    ORDER BY like_count DESC
+                    LIMIT ?
+                ) popular
+                JOIN films f ON popular.film_id = f.film_id
+                JOIN mpa m ON f.mpa_id = m.mpa_id
+                LEFT JOIN film_genres fg ON f.film_id = fg.film_id
+                LEFT JOIN genres g ON fg.genre_id = g.genre_id
+                LEFT JOIN likes l ON f.film_id = l.film_id
+                ORDER BY popular.like_count DESC, f.film_id
+                """;
+        return jdbcTemplate.query(sqlQuery, new FilmExtractor(), count);
+    }
+
+    private void validate(Film film) {
         LocalDate minDate = LocalDate.of(1895, 12, 28);
         if (film.getReleaseDate().isBefore(minDate)) {
             log.error("При попытке создания фильма указана дата раньше {}", minDate);
             throw new ValidationException("Дата должна быть не раньше 28 декабря 1895 года");
         }
-    }
-
-    public static Film makeFilm(ResultSet rs, int rowNum) throws SQLException {
-        Mpa mpa;
-        int mpaId = rs.getInt("mpa_id");
-        String mpaName = rs.getString("mpa_name");
-        if (mpaName != null) {
-            mpa = new Mpa(mpaId, mpaName);
-        } else {
-            mpa = new Mpa(mpaId);
-        }
-        return Film.builder()
-                .id(rs.getLong("film_id"))
-                .name(rs.getString("film_name"))
-                .description(rs.getString("film_description"))
-                .duration(rs.getLong("film_duration"))
-                .releaseDate(toLocalDate(rs.getDate("film_releaseDate")))
-                .mpa(mpa)
-                .build();
-    }
-
-    public static Genre makeGenre(ResultSet rs, int rowNum) throws SQLException {
-        return new Genre(rs.getInt("genre_id"), rs.getString("genre_name"));
     }
 }

@@ -1,9 +1,9 @@
 package ru.yandex.practicum.filmorate.storage.film;
 
-import org.springframework.jdbc.core.JdbcTemplate;
 import ru.yandex.practicum.filmorate.model.Film;
 
 import java.util.Collection;
+import java.util.List;
 
 
 public interface FilmStorage {
@@ -15,7 +15,9 @@ public interface FilmStorage {
 
     Film findFilmById(long id);
 
-    void validate(Film film);
+    void addLike(Long id, Long userId);
 
-    JdbcTemplate getJdbcTemplate();
+    void deleteLike(Long id, Long userId);
+
+    List<Film> getPopularFilms(Long count);
 }

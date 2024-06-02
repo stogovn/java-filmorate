@@ -12,8 +12,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.model.Genre;
-import ru.yandex.practicum.filmorate.model.Mpa;
 import ru.yandex.practicum.filmorate.service.FilmService;
 
 
@@ -62,25 +60,5 @@ public class FilmController {
     public List<Film> getPopularFilms(@Positive(message = "Размер выборки должен быть больше нуля")
                                       @RequestParam(defaultValue = "10") Long count) {
         return filmService.getPopularFilms(count);
-    }
-
-    @GetMapping("/genres")
-    public List<Genre> getGenres() {
-        return filmService.getGenres();
-    }
-
-    @GetMapping("/genres/{id}")
-    public Genre getGenreById(@PathVariable("id") Long id) {
-        return filmService.getGenreById(id);
-    }
-
-    @GetMapping("/mpa")
-    public List<Mpa> getMpa() {
-        return filmService.getMpa();
-    }
-
-    @GetMapping("/mpa/{id}")
-    public Mpa getMpaById(@PathVariable("id") Long id) {
-        return filmService.getMpaById(id);
     }
 }

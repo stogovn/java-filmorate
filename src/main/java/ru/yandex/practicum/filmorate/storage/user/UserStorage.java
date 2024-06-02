@@ -1,9 +1,9 @@
 package ru.yandex.practicum.filmorate.storage.user;
 
-import org.springframework.jdbc.core.JdbcTemplate;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.util.Collection;
+import java.util.List;
 
 public interface UserStorage {
     User create(User data);
@@ -14,7 +14,11 @@ public interface UserStorage {
 
     User findUserById(long id);
 
-    void validate(User user);
+    void addFriend(long id, long friendId);
 
-    JdbcTemplate getJdbcTemplate();
+    void deleteFriend(long id, long friendId);
+
+    List<User> getFriends(Long id);
+
+    List<User> getCommonFriends(Long id, Long otherId);
 }
