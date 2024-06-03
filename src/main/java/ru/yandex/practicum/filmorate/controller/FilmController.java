@@ -57,8 +57,8 @@ public class FilmController {
     }
 
     @GetMapping("/films/popular")
-    public List<Film> getCommonFriends(@Positive(message = "Размер выборки должен быть больше нуля")
-                                       @RequestParam(defaultValue = "10") Long count) {
+    public List<Film> getPopularFilms(@Positive(message = "Размер выборки должен быть больше нуля")
+                                      @RequestParam(defaultValue = "10") Long count) {
         return filmService.getPopularFilms(count);
     }
 }

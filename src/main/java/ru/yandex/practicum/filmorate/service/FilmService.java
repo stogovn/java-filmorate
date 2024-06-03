@@ -3,73 +3,59 @@ package ru.yandex.practicum.filmorate.service;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
+import java.time.LocalDate;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.List;
 
 @Slf4j
 @Service
 @AllArgsConstructor
 public class FilmService {
-    private FilmStorage filmStorage;
-    private UserStorage userStorage;
+    private FilmStorage dbFilmStorage;
+    private UserStorage dbUserStorage;
 
     public Film create(Film film) {
-        return filmStorage.create(film);
+        validateReleaseDate(film);
+        return dbFilmStorage.create(film);
     }
 
     public Film update(Film newFilm) {
-        validateId(newFilm.getId());
-        return filmStorage.update(newFilm);
+        validateReleaseDate(newFilm);
+        return dbFilmStorage.update(newFilm);
     }
 
     public Collection<Film> findAll() {
-        return filmStorage.findAll();
+        return dbFilmStorage.findAll();
     }
 
     public void addLike(Long id, Long userId) {
-        validateId(id);
-        validateUserId(userId);
-        filmStorage.getFilms().get(id).getLikes().add(userId);
-        log.info("Фильму с id = {} поставил лайк пользователь с id = {}", id, userId);
+        dbUserStorage.findUserById(userId);
+        dbFilmStorage.addLike(id, userId);
     }
 
     public void deleteLike(Long id, Long userId) {
-        validateId(id);
-        validateUserId(userId);
-        filmStorage.getFilms().get(id).getLikes().removeIf(x -> x.equals(userId));
-        log.info("У фильма с id = {} пользователь с id = {} удалил лайк", id, userId);
+        dbUserStorage.findUserById(userId);
+        dbFilmStorage.deleteLike(id, userId);
     }
 
     public List<Film> getPopularFilms(Long count) {
-        List<Film> sortedFilms = filmStorage.getFilms().values().stream()
-                .filter(o -> o.getLikes() != null)
-                .sorted(Comparator.comparingInt(o -> o.getLikes().size())).toList().reversed();
-
-        return sortedFilms.stream().limit(count).toList();
+        return dbFilmStorage.getPopularFilms(count);
     }
 
     public Film findFilmById(long id) {
-        validateId(id);
-        return filmStorage.findFilmById(id);
+        return dbFilmStorage.findFilmById(id);
     }
 
-    private void validateId(Long id) {
-        if (!filmStorage.getFilms().containsKey(id)) {
-            log.error("Указан несуществующий фильм с id: {}", id);
-            throw new NotFoundException("Фильм с id = " + id + " не найден");
-        }
-    }
-
-    private void validateUserId(Long userId) {
-        if (!userStorage.getUsers().containsKey(userId)) {
-            log.error("Указан несуществующий пользователь с id: {}", userId);
-            throw new NotFoundException("Пользователь с id = " + userId + " не найден");
+    private void validateReleaseDate(Film film) {
+        LocalDate minDate = LocalDate.of(1895, 12, 28);
+        if (film.getReleaseDate().isBefore(minDate)) {
+            log.error("При попытке создания фильма указана дата раньше {}", minDate);
+            throw new ValidationException("Дата должна быть не раньше 28 декабря 1895 года");
         }
     }
 }
