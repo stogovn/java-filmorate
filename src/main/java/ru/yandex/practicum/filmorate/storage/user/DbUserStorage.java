@@ -12,7 +12,6 @@ import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 
-import javax.annotation.CheckForNull;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.util.List;
@@ -80,10 +79,8 @@ public class DbUserStorage implements UserStorage {
     @Override
     public User findUserById(long id) {
         final String sqlQuery = "SELECT * FROM users WHERE user_id = ?";
-        @CheckForNull
-        List<User> users;
-        users = jdbcTemplate.query(sqlQuery, Mapper::makeUser, id);
-        if (users.size() != 1) {
+        List<User> users = jdbcTemplate.query(sqlQuery, Mapper::makeUser, id);
+        if (users.isEmpty()) {
             throw new NotFoundException("user id = " + id);
         }
         return users.getFirst();

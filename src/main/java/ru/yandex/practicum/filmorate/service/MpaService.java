@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.model.Mpa;
-import ru.yandex.practicum.filmorate.storage.mpa.DbMpaStorage;
+import ru.yandex.practicum.filmorate.storage.mpa.MpaStorage;
 
 import java.util.List;
 
@@ -12,7 +12,7 @@ import java.util.List;
 @Service
 @AllArgsConstructor
 public class MpaService {
-    private DbMpaStorage dbMpaStorage;
+    private MpaStorage dbMpaStorage;
 
     public Mpa getMpaById(long id) {
         return dbMpaStorage.getMpaById(id);

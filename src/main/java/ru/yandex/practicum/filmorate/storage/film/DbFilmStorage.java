@@ -12,13 +12,11 @@ import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
-import ru.yandex.practicum.filmorate.storage.user.DbUserStorage;
 import mapper.FilmExtractor;
 
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -30,11 +28,9 @@ import java.util.Optional;
 @Getter
 public class DbFilmStorage implements FilmStorage {
     private final JdbcTemplate jdbcTemplate;
-    private final DbUserStorage userStorage;
 
     @Override
     public Film create(Film film) {
-        validate(film);
         if (film.getMpa().getId() > 5) {
             throw new ValidationException("Неверно задан MPA");
         }
@@ -88,7 +84,6 @@ public class DbFilmStorage implements FilmStorage {
             log.error("При попытке обновления фильма не был указан id");
             throw new ValidationException("Id должен быть указан");
         }
-        validate(newFilm);
         final String sqlQuery = """
                 UPDATE films
                 SET film_name = ?, film_description = ?, film_duration = ?, film_releaseDate = ?, mpa_id = ?
@@ -139,7 +134,6 @@ public class DbFilmStorage implements FilmStorage {
     @Override
     public void addLike(Long id, Long userId) {
         findFilmById(id);
-        userStorage.findUserById(userId);
         final String sqlQuery = """
                 INSERT INTO likes (film_id, user_id)
                 VALUES(?,?)
@@ -186,13 +180,5 @@ public class DbFilmStorage implements FilmStorage {
                 ORDER BY popular.like_count DESC, f.film_id
                 """;
         return jdbcTemplate.query(sqlQuery, new FilmExtractor(), count);
-    }
-
-    private void validate(Film film) {
-        LocalDate minDate = LocalDate.of(1895, 12, 28);
-        if (film.getReleaseDate().isBefore(minDate)) {
-            log.error("При попытке создания фильма указана дата раньше {}", minDate);
-            throw new ValidationException("Дата должна быть не раньше 28 декабря 1895 года");
-        }
     }
 }
